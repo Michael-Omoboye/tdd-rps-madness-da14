@@ -1,69 +1,83 @@
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Iterator;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static java.util.Arrays.stream;
+import static org.mockito.Mockito.*;
 
 class GameTest {
 
-    public static final ConstantMovePlayer PLAYS_ROCK = new ConstantMovePlayer(Move.ROCK);
-    public static final ConstantMovePlayer PLAYS_SCISSORS = new ConstantMovePlayer(Move.SCISSORS);
+//    public static final ConstantMovePlayer PLAYS_ROCK = new ConstantMovePlayer(Move.ROCK);
+//    public static final ConstantMovePlayer PLAYS_SCISSORS = new ConstantMovePlayer(Move.SCISSORS);
+//    public static final ConstantMovePlayer PLAYS_PAPER = new ConstantMovePlayer(Move.PAPER);
 
-    private final SpyEventHandler eventHandler = new SpyEventHandler();
+    private final Game.EventHandler eventHandler = mock();
+    Player playScissors = mock(Player.class);
+    Player playRock = mock(Player.class);
+    Player playPaper = mock(Player.class);
 
+    private final Player mockRock = mock(MoveListPlayer.class);
+
+    @BeforeEach
+    void assignMove() {
+        when(playScissors.chooseMove()).thenReturn(Move.SCISSORS);
+        when(playRock.chooseMove()).thenReturn(Move.ROCK);
+        when(playPaper.chooseMove()).thenReturn(Move.PAPER);
+
+        when(mockRock.chooseMove()).thenReturn(Move.ROCK, Move.PAPER);
+    }
 
     @Test
     void player1MoveReported() {
         // Arrange
-        Game game = new Game(eventHandler, PLAYS_ROCK, PLAYS_SCISSORS);
+        Game game = new Game(eventHandler, playRock, playScissors);
         // Act
         game.play();
         // Assert
-        eventHandler.assertMoveReported(PLAYS_ROCK, Move.ROCK);
+        verify(eventHandler).playerChoseMove(playRock, Move.ROCK);
     }
+
     @Test
     void player2MoveReported() {
         // Arrange
-        Game game = new Game(eventHandler, PLAYS_ROCK, PLAYS_SCISSORS);
+        Game game = new Game(eventHandler, playRock, playScissors);
         // Act
         game.play();
         // Assert
-        eventHandler.assertMoveReported(PLAYS_SCISSORS, Move.SCISSORS);
+        verify(eventHandler).playerChoseMove(playScissors, Move.SCISSORS);
     }
 
     @Test
     void player1CanWin() {
         // Arrange
-        Game game = new Game(eventHandler, PLAYS_ROCK, PLAYS_SCISSORS);
+        Game game = new Game(eventHandler, playRock, playScissors);
         // Act
         game.play();
         // Assert
-        eventHandler.assertWinner(PLAYS_ROCK);
+        verify(eventHandler).gameWon(playRock);
     }
 
     @Test
     void player2CanWin() {
         // Arrange
-        Game game = new Game(eventHandler, PLAYS_SCISSORS, PLAYS_ROCK);
+        Game game = new Game(eventHandler, playRock, playPaper);
         // Act
         game.play();
         // Assert
-        eventHandler.assertWinner(PLAYS_ROCK);
+        verify(eventHandler).gameWon(playPaper);
     }
 
     @Test
     void drawsCanBeReported() {
         // Arrange
-        Game game = new Game(eventHandler, PLAYS_SCISSORS, PLAYS_SCISSORS);
+        Game game = new Game(eventHandler, mockRock, playRock);
         // Act
         game.play();
         // Assert
-        eventHandler.assertDrawReported();
+        verify(eventHandler).draw();
+
     }
-
-
 
     private static class ConstantMovePlayer implements Player {
         private final int move;
@@ -78,37 +92,19 @@ class GameTest {
         }
     }
 
-    private static class SpyEventHandler implements Game.EventHandler {
-        private Player reportedWinner;
-        private final Map<Player, Integer> reportedMoves = new HashMap<>();
-        private boolean draw = false;
 
-        @Override
-        public void playerChoseMove(Player player, int move) {
-            reportedMoves.put(player, move);
+    private static class MoveListPlayer implements Player {
+        private final Iterator<Integer> iterator;
+
+        MoveListPlayer(int... moves) {
+            iterator = stream(moves).boxed().iterator();
         }
 
         @Override
-        public void gameWon(Player winner) {
-            reportedWinner = winner;
+        public int chooseMove() {
+            return iterator.next();
         }
 
-        @Override
-        public void draw() {
-            draw = true;
-        }
 
-        void assertWinner(Player expectedWinner) {
-            assertEquals(expectedWinner, reportedWinner);
-        }
-
-        public void assertMoveReported(ConstantMovePlayer expectedPlayer, int expectedMove) {
-            assertTrue(reportedMoves.containsKey(expectedPlayer));
-            assertEquals(expectedMove, reportedMoves.get(expectedPlayer));
-        }
-
-        public void assertDrawReported() {
-            assertTrue(draw);
-        }
     }
 }

@@ -13,6 +13,7 @@ public class MoveTest {
     void scissorsShouldNotBeatRock() {
         assertFalse(Move.beats(Move.SCISSORS, Move.ROCK));
     }
+
     @Test
     void scissorsShouldBeatPaper() {
         assertTrue(Move.beats(Move.SCISSORS, Move.PAPER));
